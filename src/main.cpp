@@ -280,13 +280,19 @@ int main(int argc, char *argv[]) {
           return candidate;
         };
         std::string build_date_display = format_build_date(build_date);
+        std::string build_date_value =
+            build_date.empty()
+                ? R"html(<span data-lang="en">unknown</span><span data-lang="zh">未知</span>)html"
+                : build_date_display;
         std::string commit_link =
             build_id.empty()
                 ? ""
                 : "<a "
                   "href=\"https://github.com/Aethersailor/"
                   "SubConverter-Extended/commit/" +
-                      build_id + "\" target=\"_blank\">" + build_id + "</a>";
+                      build_id +
+                      "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+                      build_id + "</a>";
 
         return R"html(<!DOCTYPE html>
 <html lang="en">
@@ -296,6 +302,17 @@ int main(int argc, char *argv[]) {
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <meta name="color-scheme" content="light dark">
     <title>SubConverter-Extended</title>
+    <script>
+        (function () {
+            var languages = navigator.languages && navigator.languages.length
+                ? navigator.languages
+                : [navigator.language || ""];
+            var isChinese = languages.some(function (language) {
+                return /^zh\b/i.test(language);
+            });
+            document.documentElement.lang = isChinese ? "zh-CN" : "en";
+        })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/version/favicon-dark.svg">
     <link rel="icon" type="image/svg+xml" href="/version/favicon-light.svg" media="(prefers-color-scheme: light)">
     <link rel="icon" type="image/svg+xml" href="/version/favicon-dark.svg" media="(prefers-color-scheme: dark)">
@@ -317,6 +334,9 @@ int main(int argc, char *argv[]) {
             --link-color: #3182ce;
             --link-hover: #2b6cb0;
             --header-gradient: linear-gradient(135deg, #1a202c 0%, #4a5568 100%);
+            --control-bg: rgba(255, 255, 255, 0.72);
+            --control-hover: rgba(255, 255, 255, 0.92);
+            --control-border: rgba(26, 32, 44, 0.12);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -334,13 +354,21 @@ int main(int argc, char *argv[]) {
                 --link-color: #63b3ed;
                 --link-hover: #90cdf4;
                 --header-gradient: linear-gradient(135deg, #ffffff 0%, #90cdf4 100%);
+                --control-bg: rgba(255, 255, 255, 0.08);
+                --control-hover: rgba(255, 255, 255, 0.14);
+                --control-border: rgba(255, 255, 255, 0.16);
             }
+        }
+
+        html[lang^="zh"] [data-lang="en"],
+        html:not([lang^="zh"]) [data-lang="zh"] {
+            display: none;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+            font-family: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -358,7 +386,7 @@ int main(int argc, char *argv[]) {
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border-radius: 32px;
-            padding: 40px 50px;
+            padding: 64px 50px 40px;
             max-width: 800px;
             width: 100%;
             box-shadow: var(--shadow);
@@ -380,6 +408,35 @@ int main(int argc, char *argv[]) {
             mask-composite: exclude;
             pointer-events: none;
         }
+
+        .lang-toggle {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            z-index: 2;
+            border: 1px solid var(--control-border);
+            border-radius: 999px;
+            background: var(--control-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.88rem;
+            font-weight: 600;
+            line-height: 1;
+            min-width: 72px;
+            padding: 9px 14px;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .lang-toggle:hover {
+            background: var(--control-hover);
+            transform: translateY(-1px);
+        }
+
+        .lang-toggle:focus-visible {
+            outline: 3px solid rgba(99, 179, 237, 0.35);
+            outline-offset: 2px;
+        }
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(30px); }
@@ -399,7 +456,7 @@ int main(int argc, char *argv[]) {
             font-size: 3em;
             margin-bottom: 8px;
             font-weight: 700;
-            letter-spacing: -0.04em;
+            letter-spacing: 0;
             line-height: 1.05;
         }
         
@@ -407,7 +464,7 @@ int main(int argc, char *argv[]) {
             color: var(--text-secondary);
             font-size: 1.05em;
             font-weight: 500;
-            letter-spacing: 0.1em;
+            letter-spacing: 0;
             text-transform: uppercase;
             opacity: 0.6;
         }
@@ -429,7 +486,7 @@ int main(int argc, char *argv[]) {
             align-items: center;
             gap: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0;
             opacity: 0.8;
         }
 
@@ -475,7 +532,7 @@ int main(int argc, char *argv[]) {
             display: block;
             text-transform: uppercase;
             font-size: 0.75rem;
-            letter-spacing: 0.1em;
+            letter-spacing: 0;
             color: var(--text-secondary);
             margin-bottom: 8px;
             font-weight: 600;
@@ -533,7 +590,8 @@ int main(int argc, char *argv[]) {
         }
         
         @media (max-width: 600px) {
-            .container { padding: 30px 20px; }
+            .container { padding: 58px 20px 30px; }
+            .lang-toggle { top: 16px; right: 16px; }
             h1 { font-size: 2.2em; }
             .info-grid { grid-template-columns: 1fr; gap: 12px; }
             .section { padding: 15px; }
@@ -542,46 +600,101 @@ int main(int argc, char *argv[]) {
 </head>
 <body>
     <div class="container">
+        <button type="button" class="lang-toggle" id="lang-toggle">中文</button>
         <header>
             <h1>SubConverter-Extended</h1>
-            <p class="subtitle">A Modern Evolution of Subconverter</p>
+            <p class="subtitle">
+                <span data-lang="en">A Modern Evolution of Subconverter</span>
+                <span data-lang="zh">Subconverter 的现代化演进版本</span>
+            </p>
         </header>
 
         <div class="info-grid">
             <div class="info-card">
-                <span class="info-label">Version</span>
+                <span class="info-label">
+                    <span data-lang="en">Version</span>
+                    <span data-lang="zh">版本</span>
+                </span>
                 <div class="info-value">)html" VERSION R"html(</div>
             </div>
             <div class="info-card">
-                <span class="info-label">Build</span>
+                <span class="info-label">
+                    <span data-lang="en">Build</span>
+                    <span data-lang="zh">构建</span>
+                </span>
                 <div class="info-value">)html" +
                commit_link + R"html(</div>
             </div>
             <div class="info-card">
-                <span class="info-label">Build Date</span>
+                <span class="info-label">
+                    <span data-lang="en">Build Date</span>
+                    <span data-lang="zh">构建日期</span>
+                </span>
                 <div class="info-value">)html" +
-               build_date_display + R"html(</div>
+               build_date_value + R"html(</div>
             </div>
         </div>
         
         <div class="section">
-            <div class="section-title">✨ Overview</div>
-            <p class="description">An enhanced implementation of subconverter, aligned with the <a href="https://github.com/MetaCubeX/mihomo/tree/Meta" target="_blank">Mihomo</a> <a href="https://wiki.metacubex.one/config/" target="_blank">configuration</a>.</p>
-            <p class="description">Primarily for <a href="https://github.com/vernesong/OpenClash" target="_blank">OpenClash</a>, while compatible with other Clash clients.</p>
-            <p class="description">Dedicated companion backend for the <a href="https://github.com/Aethersailor/Custom_OpenClash_Rules" target="_blank">Custom_OpenClash_Rules</a> project.</p>
+            <div class="section-title">
+                <span data-lang="en">✨ Overview</span>
+                <span data-lang="zh">✨ 项目概览</span>
+            </div>
+            <p class="description" data-lang="en">An enhanced implementation of subconverter, aligned with the <a href="https://github.com/MetaCubeX/mihomo/tree/Meta" target="_blank" rel="noopener noreferrer">Mihomo</a> <a href="https://wiki.metacubex.one/config/" target="_blank" rel="noopener noreferrer">configuration</a>.</p>
+            <p class="description" data-lang="zh">subconverter 的增强实现，适配 <a href="https://github.com/MetaCubeX/mihomo/tree/Meta" target="_blank" rel="noopener noreferrer">Mihomo</a> <a href="https://wiki.metacubex.one/config/" target="_blank" rel="noopener noreferrer">配置规范</a>。</p>
+            <p class="description" data-lang="en">Primarily for <a href="https://github.com/vernesong/OpenClash" target="_blank" rel="noopener noreferrer">OpenClash</a>, while compatible with other Clash clients.</p>
+            <p class="description" data-lang="zh">主要面向 <a href="https://github.com/vernesong/OpenClash" target="_blank" rel="noopener noreferrer">OpenClash</a>，同时兼容其他 Clash 客户端。</p>
+            <p class="description" data-lang="en">Dedicated companion backend for the <a href="https://github.com/Aethersailor/Custom_OpenClash_Rules" target="_blank" rel="noopener noreferrer">Custom_OpenClash_Rules</a> project.</p>
+            <p class="description" data-lang="zh">作为 <a href="https://github.com/Aethersailor/Custom_OpenClash_Rules" target="_blank" rel="noopener noreferrer">Custom_OpenClash_Rules</a> 项目的专用配套后端。</p>
         </div>
 
         <div class="section">
-            <div class="section-title">🚀 Lineage</div>
-            <p class="description">Originated and enhanced from: <a href="https://github.com/asdlokj1qpi233/subconverter" target="_blank">subconverter</a></p>
-            <p class="description">Modified and evolved by: <a href="https://github.com/Aethersailor" target="_blank">Aethersailor</a></p>
+            <div class="section-title">
+                <span data-lang="en">🚀 Lineage</span>
+                <span data-lang="zh">🚀 项目沿革</span>
+            </div>
+            <p class="description" data-lang="en">Originated and enhanced from: <a href="https://github.com/asdlokj1qpi233/subconverter" target="_blank" rel="noopener noreferrer">subconverter</a></p>
+            <p class="description" data-lang="zh">源自并增强自：<a href="https://github.com/asdlokj1qpi233/subconverter" target="_blank" rel="noopener noreferrer">subconverter</a></p>
+            <p class="description" data-lang="en">Modified and evolved by: <a href="https://github.com/Aethersailor" target="_blank" rel="noopener noreferrer">Aethersailor</a></p>
+            <p class="description" data-lang="zh">由 <a href="https://github.com/Aethersailor" target="_blank" rel="noopener noreferrer">Aethersailor</a> 修改并持续演进</p>
         </div>
 
         <div class="footer">
-            Source Code: <a href="https://github.com/Aethersailor/SubConverter-Extended" target="_blank">GitHub</a> • 
-            License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GPL-3.0</a>
+            <span data-lang="en">Source Code: <a href="https://github.com/Aethersailor/SubConverter-Extended" target="_blank" rel="noopener noreferrer">GitHub</a> • License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer">GPL-3.0</a></span>
+            <span data-lang="zh">源代码：<a href="https://github.com/Aethersailor/SubConverter-Extended" target="_blank" rel="noopener noreferrer">GitHub</a> • 许可证：<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer">GPL-3.0</a></span>
         </div>
     </div>
+    <script>
+        (function () {
+            var toggle = document.getElementById("lang-toggle");
+            if (!toggle) {
+                return;
+            }
+
+            function isChinese() {
+                return /^zh\b/i.test(document.documentElement.lang || "");
+            }
+
+            function updateToggle() {
+                if (isChinese()) {
+                    toggle.textContent = "English";
+                    toggle.setAttribute("aria-label", "Switch to English");
+                    toggle.setAttribute("title", "Switch to English");
+                } else {
+                    toggle.textContent = "中文";
+                    toggle.setAttribute("aria-label", "切换到中文");
+                    toggle.setAttribute("title", "切换到中文");
+                }
+            }
+
+            toggle.addEventListener("click", function () {
+                document.documentElement.lang = isChinese() ? "en" : "zh-CN";
+                updateToggle();
+            });
+
+            updateToggle();
+        })();
+    </script>
 </body>
 </html>)html";
       });
