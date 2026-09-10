@@ -1308,7 +1308,7 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode,
     if (!x.CanonicalProxyJson.empty()) {
       try {
         singleproxy = buildCanonicalClashProxy(
-            x, ClashProxyOverlay{udp, scv, tfo, xudp});
+            x, ClashProxyOverlay{udp, scv, tfo, xudp, ext.reality_mlkem768});
       } catch (const std::exception &e) {
         writeLog(LOG_LEVEL_ERROR, "MIHOMO_CANONICAL_PROXY_INVALID detail=" +
                         summarizeSensitiveTextForLog(e.what()));
@@ -1781,6 +1781,8 @@ void proxyToClash(std::vector<Proxy> &nodes, YAML::Node &yamlnode,
         singleproxy["skip-cert-verify"] = scv.get();
       if (!x.PublicKey.empty()) {
         singleproxy["reality-opts"]["public-key"] = x.PublicKey;
+        if (ext.reality_mlkem768 || x.SupportX25519MLKEM768.get(false))
+          singleproxy["reality-opts"]["support-x25519mlkem768"] = true;
       }
       if (!x.ServerName.empty())
         singleproxy["servername"] = x.ServerName;
@@ -5617,6 +5619,8 @@ static std::string proxyToSingleProfile(const std::vector<Proxy> &nodes,
         appendShareQuery(query, "flow", flow);
         appendShareQuery(query, "pbk", pbk);
         appendShareQuery(query, "sid", sid);
+        if (!pbk.empty() && x.SupportX25519MLKEM768.get(false))
+          appendShareQuery(query, "support-x25519mlkem768", "1");
         appendShareQuery(query, "fp", fp);
         appendShareQuery(query, "packet-encoding", packet_encoding);
         if (x.AllowInsecure.get())

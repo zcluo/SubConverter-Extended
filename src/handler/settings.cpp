@@ -1105,6 +1105,7 @@ void readYAMLConf(YAML::Node &node,
     section["filter_deprecated_nodes"] >> global.filterDeprecated;
     section["append_sub_userinfo"] >> global.appendUserinfo;
     section["clash_use_new_field_name"] >> global.clashUseNewField;
+    section["clash_reality_mlkem768"] >> global.clashRealityMlkem768;
     section["clash_proxies_style"] >> global.clashProxiesStyle;
     section["singbox_add_clash_modes"] >> global.singBoxAddClashModes;
   }
@@ -1438,6 +1439,7 @@ void readTOMLConf(toml::value &root,
       "sort_script", global.sortScript, "filter_deprecated_nodes",
       global.filterDeprecated, "append_sub_userinfo", global.appendUserinfo,
       "clash_use_new_field_name", global.clashUseNewField,
+      "clash_reality_mlkem768", global.clashRealityMlkem768,
       "clash_proxies_style", global.clashProxiesStyle,
       "singbox_add_clash_modes", global.singBoxAddClashModes);
 
@@ -1893,6 +1895,8 @@ bool readConf() {
     ini.get_bool_if_exist("filter_deprecated_nodes", global.filterDeprecated);
     ini.get_bool_if_exist("append_sub_userinfo", global.appendUserinfo);
     ini.get_bool_if_exist("clash_use_new_field_name", global.clashUseNewField);
+    ini.get_bool_if_exist("clash_reality_mlkem768",
+                          global.clashRealityMlkem768);
     ini.get_if_exist("clash_proxies_style", global.clashProxiesStyle);
     ini.get_bool_if_exist("singbox_add_clash_modes",
                           global.singBoxAddClashModes);

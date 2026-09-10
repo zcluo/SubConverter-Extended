@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -31,6 +33,11 @@ func parseSubscriptionWithMihomo(subscription string) ([]map[string]any, error) 
 			return nil, fmt.Errorf("%w, %w", err, convertErr)
 		}
 		schema.Proxies = proxies
+		// Mihomo's share-link converter drops every unknown query parameter,
+		// including the mihomo-only reality option support-x25519mlkem768.
+		// Re-read the VLESS links here and restore that option before the
+		// mappings are validated and exported as canonical JSON.
+		applyVlessRealityOverrides(buf, schema.Proxies)
 	}
 
 	if schema.Proxies == nil {
@@ -105,6 +112,92 @@ func isEmptyRequiredValue(value any) bool {
 		return strings.TrimSpace(text) == ""
 	}
 	return false
+}
+
+// vlessRealityMlkemParam is the share-link query parameter that requests the
+// mihomo-only REALITY option support-x25519mlkem768 (X25519MLKEM768 hybrid
+// post-quantum key exchange). The name mirrors the generated config key.
+const vlessRealityMlkemParam = "support-x25519mlkem768"
+
+// applyVlessRealityOverrides re-reads the VLESS share links that Mihomo's
+// converter consumed and injects reality-opts.support-x25519mlkem768 into the
+// matching mappings. Mihomo's handleVShareLink only copies public-key/short-id
+// into reality-opts, so this pass restores the option. The scan mirrors the
+// line handling of ConvertsV2Ray (base64 decode, trim, URL parse, optional
+// base64 host decoding, host/port validation) so each flagged link is matched
+// to its own mapping in order. Mappings without an existing REALITY public
+// key are never touched.
+func applyVlessRealityOverrides(subscription []byte, proxies []map[string]any) {
+	lines := strings.Split(string(convert.DecodeBase64(subscription)), "\n")
+	cursor := 0
+	for _, line := range lines {
+		line = strings.TrimRight(line, " \r")
+		if line == "" || !strings.HasPrefix(strings.ToLower(line), "vless://") {
+			continue
+		}
+		uri, err := url.Parse(line)
+		if err != nil {
+			// Mihomo's converter skips the same lines, so the
+			// line-to-mapping alignment below stays intact.
+			continue
+		}
+		// Mihomo decodes a base64-encoded Host before reading server and
+		// port; mirror that so identity checks and alignment agree.
+		if decodedHost, err := tryDecodeBase64Host(uri.Host); err == nil {
+			uri.Host = decodedHost
+		}
+		if uri.Hostname() == "" || uri.Port() == "" {
+			continue
+		}
+		for cursor < len(proxies) && proxies[cursor]["type"] != "vless" {
+			cursor++
+		}
+		if cursor >= len(proxies) {
+			return
+		}
+		proxy := proxies[cursor]
+		cursor++
+		// Identity check guards against alignment drift; on mismatch the
+		// mapping is left untouched.
+		if proxy["server"] != uri.Hostname() || proxy["port"] != uri.Port() ||
+			proxy["uuid"] != uri.User.Username() {
+			continue
+		}
+		if !isTruthyShareValue(uri.Query().Get(vlessRealityMlkemParam)) {
+			continue
+		}
+		reality, ok := proxy["reality-opts"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if publicKey, ok := reality["public-key"].(string); !ok || publicKey == "" {
+			continue
+		}
+		reality[vlessRealityMlkemParam] = true
+	}
+}
+
+func isTruthyShareValue(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes":
+		return true
+	default:
+		return false
+	}
+}
+
+// tryDecodeBase64Host mirrors Mihomo convert.tryDecodeBase64 (RawStd then
+// Std padding), which the converter applies to the vless URL host before
+// reading server and port.
+func tryDecodeBase64Host(host string) (string, error) {
+	if decoded, err := base64.RawStdEncoding.DecodeString(host); err == nil {
+		return string(decoded), nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(host)
+	if err != nil {
+		return "", err
+	}
+	return string(decoded), nil
 }
 
 func isCompatibleProxyValue(value any, kind string) bool {

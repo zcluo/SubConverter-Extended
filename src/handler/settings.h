@@ -86,6 +86,9 @@ struct Settings {
   tribool UDPFlag, TFOFlag, skipCertVerify, TLS13Flag, enableInsert;
   bool enableSort = false, updateStrict = false;
   bool clashUseNewField = false, singBoxAddClashModes = true;
+  // Force reality-opts.support-x25519mlkem768 into every generated Clash
+  // VLESS/Trojan proxy that carries a REALITY public key.
+  bool clashRealityMlkem768 = false;
   std::string clashProxiesStyle = "flow", clashProxyGroupsStyle = "block";
   std::string proxyConfig, proxyRuleset, proxySubscription;
   std::string proxyBypass = kDefaultProxyBypass;

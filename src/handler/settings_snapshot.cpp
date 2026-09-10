@@ -70,6 +70,7 @@ std::string sanitizedSettingsSnapshot(const Settings &settings) {
            {"filter_deprecated", settings.filterDeprecated},
            {"append_userinfo", settings.appendUserinfo},
            {"clash_new_fields", settings.clashUseNewField},
+           {"clash_reality_mlkem768", settings.clashRealityMlkem768},
            {"clash_proxies_style", settings.clashProxiesStyle},
            {"singbox_add_clash_modes", settings.singBoxAddClashModes},
            {"emoji_rule_count", settings.emojis.size()},

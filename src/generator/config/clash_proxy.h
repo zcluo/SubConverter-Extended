@@ -14,6 +14,9 @@ struct ClashProxyOverlay {
   tribool skip_cert_verify;
   tribool tfo;
   tribool xudp;
+  // When set, inject reality-opts.support-x25519mlkem768 into every proxy
+  // whose canonical document carries a REALITY public key.
+  bool reality_mlkem768 = false;
 };
 
 // Build one Clash proxy mapping from Mihomo's complete type-preserving JSON

@@ -134,6 +134,9 @@ struct extra_settings {
   bool filter_deprecated = false;
   bool clash_new_field_name = false;
   bool clash_script = false;
+  // Force reality-opts.support-x25519mlkem768 into Clash output for proxies
+  // that carry a REALITY public key (mihomo-only option).
+  bool reality_mlkem768 = false;
   std::string surge_ssr_path;
   std::string managed_config_prefix;
   std::string quanx_dev_id;

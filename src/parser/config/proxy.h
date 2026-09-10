@@ -181,6 +181,9 @@ struct Proxy {
   String Flow;
   String Encryption;
   bool FlowShow = false;
+  // Mihomo-only REALITY option: offer the X25519MLKEM768 hybrid post-quantum
+  // key exchange. VLESS share links carry it as support-x25519mlkem768=1.
+  tribool SupportX25519MLKEM768;
   tribool DisableSni;
   uint32_t UpSpeed;
   uint32_t DownSpeed;

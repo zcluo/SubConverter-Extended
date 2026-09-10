@@ -218,6 +218,22 @@ void applyBooleanOverlay(YAML::Node &mapping, const std::string &protocol,
   mapping[parameter] = requested.get();
 }
 
+// support-x25519mlkem768 only exists on nodes that already opt into REALITY,
+// so the injection is keyed on the presence of reality-opts.public-key rather
+// than the protocol.
+void applyRealityMlkemOverlay(YAML::Node &mapping, bool requested) {
+  if (!requested)
+    return;
+  YAML::Node reality = mapping["reality-opts"];
+  if (!reality.IsDefined() || !reality.IsMap())
+    return;
+  YAML::Node public_key = reality["public-key"];
+  if (!public_key.IsDefined() || !public_key.IsScalar() ||
+      public_key.Scalar().empty())
+    return;
+  reality["support-x25519mlkem768"] = true;
+}
+
 class CanonicalStringEventHandler final : public YAML::EventHandler {
 public:
   explicit CanonicalStringEventHandler(YAML::Emitter &emitter)
@@ -361,6 +377,7 @@ YAML::Node buildCanonicalClashProxy(const Proxy &proxy,
                       overlay.skip_cert_verify);
   applyBooleanOverlay(result, protocol, "tfo", overlay.tfo);
   applyBooleanOverlay(result, protocol, "xudp", overlay.xudp);
+  applyRealityMlkemOverlay(result, overlay.reality_mlkem768);
   return result;
 }
 

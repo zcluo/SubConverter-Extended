@@ -140,6 +140,8 @@ static void appendMihomoNodes(std::vector<mihomo::ProxyNode> &source,
     if (is_vless && !reality_options.empty()) {
       node.PublicKey = reality_options.value("public-key", std::string());
       node.ShortId = reality_options.value("short-id", std::string());
+      if (reality_options.value("support-x25519mlkem768", false))
+        node.SupportX25519MLKEM768 = true;
     }
 
     auto alpn = canonical.find("alpn");

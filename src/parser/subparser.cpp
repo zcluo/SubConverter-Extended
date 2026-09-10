@@ -2592,6 +2592,9 @@ void explodeClash(Node yamlnode, std::vector<Proxy> &nodes) {
                     writeLog(LOG_LEVEL_DEBUG, "Reality 主机：" + host);
                     singleproxy["reality-opts"]["public-key"] >>= pbk;
                     singleproxy["reality-opts"]["short-id"] >>= sid;
+                    if (singleproxy["reality-opts"]["support-x25519mlkem768"].IsDefined())
+                        node.SupportX25519MLKEM768.set(safe_as<std::string>(
+                            singleproxy["reality-opts"]["support-x25519mlkem768"]));
                 }
                 singleproxy["flow"] >>= flow;
                 singleproxy["client-fingerprint"] >>= fp;
@@ -3093,6 +3096,8 @@ void explodeStdVless(std::string vless, Proxy &node) {
                    decodedUrlArg(parsed.query, "packet-encoding"), tribool(), tribool(),
                    getXrayAllowInsecure(parsed.query), tribool(), "",
                    tribool(), encryption);
+    node.SupportX25519MLKEM768.set(
+        toLower(decodedUrlArg(parsed.query, "support-x25519mlkem768")));
     return;
 }
 

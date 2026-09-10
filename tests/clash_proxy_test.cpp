@@ -177,5 +177,38 @@ int main() {
       buildCanonicalClashProxy(computed_type, reject_insecure);
   assert(computed_result["skip-cert-verify"].as<bool>());
 
+  // The mlkem overlay only touches nodes whose canonical document opts into
+  // REALITY, and it is absent from the output unless explicitly requested.
+  Proxy mlkem_proxy = proxy;
+  mlkem_proxy.CanonicalProxyJson = R"json({
+    "name":"Mlkem Reality",
+    "server":"mlkem.example.test",
+    "port":443,
+    "type":"vless",
+    "uuid":"11111111-1111-1111-1111-111111111111",
+    "reality-opts":{"public-key":"fixture-key","short-id":"00112233"}
+  })json";
+  ClashProxyOverlay mlkem_overlay;
+  mlkem_overlay.reality_mlkem768 = true;
+  YAML::Node mlkem_result = buildCanonicalClashProxy(mlkem_proxy, mlkem_overlay);
+  assert(mlkem_result["reality-opts"]["support-x25519mlkem768"].as<bool>());
+  mlkem_overlay.reality_mlkem768 = false;
+  YAML::Node mlkem_off_result =
+      buildCanonicalClashProxy(mlkem_proxy, mlkem_overlay);
+  assert(!mlkem_off_result["reality-opts"]["support-x25519mlkem768"].IsDefined());
+
+  Proxy plain_vless = mlkem_proxy;
+  plain_vless.CanonicalProxyJson = R"json({
+    "name":"Plain Vless",
+    "server":"plain.example.test",
+    "port":443,
+    "type":"vless",
+    "uuid":"11111111-1111-1111-1111-111111111111",
+    "tls":true
+  })json";
+  YAML::Node plain_vless_result =
+      buildCanonicalClashProxy(plain_vless, mlkem_overlay);
+  assert(!plain_vless_result["reality-opts"].IsDefined());
+
   return 0;
 }

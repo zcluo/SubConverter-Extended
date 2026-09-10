@@ -2390,7 +2390,7 @@ RequestCostClass estimateConversionCost(const Request &request) {
   static constexpr const char *transform_parameters[] = {
       "include", "exclude", "rename", "emoji", "add_emoji",
       "remove_emoji", "append_type", "sort", "filter_deprecated",
-      "udp", "tfo", "scv", "tls13", "group", "ruleprepend",
+      "udp", "tfo", "scv", "tls13", "mlkem768", "group", "ruleprepend",
       "ruleappend", "ruleset", "provider_headers"};
   bool transformation = false;
   for (const char *name : transform_parameters) {
@@ -3712,6 +3712,7 @@ struct ParsedSubRequest {
   tribool generate_classical_rule_provider;
   tribool tls13;
   tribool provider_proxy_direct;
+  tribool mlkem768;
 };
 
 static std::string parseSubRequestArguments(Request &request,
@@ -3806,6 +3807,7 @@ static std::string parseSubRequestArguments(Request &request,
   parsed.enable_insert = getUrlArg(argument, "insert");
   parsed.skip_cert_verify = getUrlArg(argument, "scv");
   parsed.filter_deprecated = getUrlArg(argument, "fdn");
+  parsed.mlkem768 = getUrlArg(argument, "mlkem768");
   parsed.expand_rulesets = getUrlArg(argument, "expand");
   parsed.append_userinfo = getUrlArg(argument, "append_info");
   parsed.prepend_insert = getUrlArg(argument, "prepend");
@@ -3985,6 +3987,8 @@ static std::string buildEffectiveSubPolicy(Request &request,
       parsed.filter_deprecated.get(settings.filterDeprecated);
   policy.generator.clash_new_field_name =
       parsed.clash_new_field.get(settings.clashUseNewField);
+  policy.generator.reality_mlkem768 =
+      parsed.mlkem768.get(settings.clashRealityMlkem768);
   policy.generator.clash_script = parsed.generate_clash_script.get();
   policy.generator.clash_classical_ruleset =
       parsed.generate_classical_rule_provider.get();
@@ -7124,6 +7128,10 @@ static std::string assembleSubResponse(
     addSwitchParameter("append_type", ext.append_proxy_type, argAppendType);
     addSwitchParameter("tfo", ext.tfo.get(false), ext.tfo);
     addSwitchParameter("udp", ext.udp.get(false), ext.udp);
+    addSwitchParameter(
+        "mlkem768", ext.reality_mlkem768, parsed.mlkem768,
+        "Forces reality-opts.support-x25519mlkem768 into Clash VLESS/Trojan "
+        "proxies that carry a REALITY public key.");
     addParameter("list", boolString(ext.nodelist), "applied",
                   ext.nodelist
                       ? "Explicit node-list mode expands subscription sources."
@@ -7189,8 +7197,8 @@ static std::string assembleSubResponse(
         "upload", "emoji", "add_emoji", "remove_emoji", "append_type",
         "tfo", "udp", "list", "sort", "sort_script", "script", "insert",
         "scv", "fdn", "expand", "append_info", "prepend", "classic",
-        "tls13", "provider_proxy_direct", "provider_headers", "explain",
-        "profile_data", "token"};
+        "tls13", "mlkem768", "provider_proxy_direct", "provider_headers",
+        "explain", "profile_data", "token"};
     for (const auto &arg : argument) {
       if (known_parameters.find(arg.first) != known_parameters.end())
         continue;
@@ -9117,6 +9125,7 @@ std::string surgeConfToClash(RESPONSE_CALLBACK_ARGS) {
   ext.sort_flag = global.enableSort;
   ext.filter_deprecated = global.filterDeprecated;
   ext.clash_new_field_name = global.clashUseNewField;
+  ext.reality_mlkem768 = global.clashRealityMlkem768;
   ext.udp = global.UDPFlag;
   ext.tfo = global.TFOFlag;
   ext.skip_cert_verify = global.skipCertVerify;
